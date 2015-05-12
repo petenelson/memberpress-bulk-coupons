@@ -1,0 +1,7 @@
+* enqueue script only on correct page
+* have some way to download coupon codes after bulkd generation
+	- via an option
+	- dismissable
+* create proper plugin header
+* add localization to js
+* move everything into proper directory structure

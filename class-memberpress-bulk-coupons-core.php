@@ -41,7 +41,12 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 			$post = get_post( $post_id );
 			if ( ! empty( $post ) && $post->post_type === MeprCoupon::$cpt && $number_of_coupons >= 2 ) {
 
+				// since the original hook below already processed the coupon, we only
+				// need to do this for additional coupons
 				$number_of_coupons--;
+
+				// TODO somewhere in here, store a list of post IDs that were created
+				// so we can offer a download link later on
 
 				remove_action( 'save_post', 'MeprCouponsController::save_postdata' );
 
@@ -62,11 +67,7 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 
 				}
 
-				// call the MeprCouponsController::save_postdata for each post
-
 			}
-
-			// dd_action('save_post', 'MeprCouponsController::save_postdata');
 
 
 		}

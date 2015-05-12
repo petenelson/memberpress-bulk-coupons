@@ -1,14 +1,13 @@
 <?php
 /*
 Plugin Name: MemberPress Bulk Coupons
+Description: Allows creation of bulk coupons for MemberPress
+Author: Pete Nelson
+Version: 1.0
+Author: Pete Nelson
+Author URI: https://twitter.com/gungeekatx
+Text Domain: memberpress-bulk-coupons
 */
-
-/*
-TODO
-
-get currency code
-	*/
-
 
 require_once 'class-memberpress-bulk-coupons-core.php';
 
