@@ -10,7 +10,7 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 
 		public function plugins_loaded() {
 			add_action( 'admin_init', array( $this, 'enqueue_js' ) );
-			add_action( 'save_post', array( $this, 'handle_coupon_save' ), 1, 1 );
+			add_action( 'save_post', array( $this, 'handle_coupon_save' ), 100 );
 		}
 
 		public function enqueue_js() {
@@ -20,19 +20,33 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 
 		public function handle_coupon_save( $post_id ) {
 
-	
+			if ( ! class_exists( 'MeprCoupon' ) ) {
+				return;
+			}
 
-			// TODO verify nonce
-			$number_of_coupons = absint ( filter_input( INPUT_POST, '_mepr_bulk_number_of_coupons', FILTER_SANITIZE_NUMBER_INT ) );
+			// verify nonce, copied from Mepr code
+
+		    if(!wp_verify_nonce((isset($_POST[MeprCoupon::$nonce_str]))?$_POST[MeprCoupon::$nonce_str]:'', MeprCoupon::$nonce_str.wp_salt()))
+		      return $post_id; //Nonce prevents meta data from being wiped on move to trash
+
+		    if(defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
+		      return $post_id;
+
+		    if(defined('DOING_AJAX'))
+		      return;
+
+		  	// see if we're doing bulk coupons
+			$number_of_coupons = filter_input( INPUT_POST, '_mepr_bulk_number_of_coupons', FILTER_SANITIZE_NUMBER_INT );
 
 			$post = get_post( $post_id );
-			if ( ! empty( $post ) && $post->post_type === 'memberpresscoupon' && ! empty( $number_of_coupons ) ) {
+			if ( ! empty( $post ) && $post->post_type === MeprCoupon::$cpt && $number_of_coupons >= 2 ) {
 
-				// unhook the default save
+				$number_of_coupons--;
+
 				remove_action( 'save_post', 'MeprCouponsController::save_postdata' );
 
 				// unhook our own save
-				remove_action( 'save_post', array( $this, 'handle_coupon_save'), 1 );
+				remove_action( 'save_post', array( $this, 'handle_coupon_save'), 100 );
 
 				// create a new post with for each of the number of coupons
 				// with a coupon code as the title
