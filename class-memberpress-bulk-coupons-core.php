@@ -9,14 +9,26 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 		static $version = '2015-05-12-01';
 
 		public function plugins_loaded() {
-			add_action( 'admin_init', array( $this, 'enqueue_js' ) );
+			add_action( 'current_screen', array( $this, 'enqueue_js' ), 10, 0 );
 			add_action( 'save_post', array( $this, 'handle_coupon_save' ), 100 );
 		}
 
+
 		public function enqueue_js() {
-			wp_enqueue_script( 'jquery' );
-			wp_enqueue_script( 'memberpress-bulk-coupons', plugin_dir_url( __FILE__ ) . 'memberpress-bulk-coupons.js', array( 'jquery' ), self::$version, true );
+
+			if ( ! class_exists( 'MeprCoupon' ) ) {
+				return;
+			}
+
+			if ( is_admin() ) {
+				$screen = get_current_screen();
+				if ( ! empty( $screen )  && $screen->post_type === MeprCoupon::$cpt ) {
+					wp_enqueue_script( 'jquery' );
+					wp_enqueue_script( 'memberpress-bulk-coupons', plugin_dir_url( __FILE__ ) . 'memberpress-bulk-coupons.js', array( 'jquery' ), self::$version, true );
+				}
+			}
 		}
+
 
 		public function handle_coupon_save( $post_id ) {
 
