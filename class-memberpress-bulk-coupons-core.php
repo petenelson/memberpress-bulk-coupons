@@ -11,6 +11,8 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 		public function plugins_loaded() {
 			add_action( 'current_screen', array( $this, 'enqueue_js' ), 10, 0 );
 			add_action( 'save_post', array( $this, 'handle_coupon_save' ), 100 );
+			add_action( 'admin_notices', array( $this, 'display_download_coupons') );
+
 		}
 
 
@@ -53,13 +55,13 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 			$post = get_post( $post_id );
 			if ( ! empty( $post ) && $post->post_type === MeprCoupon::$cpt && $number_of_coupons >= 2 ) {
 
+				$coupon_codes = array( $post->title );
+
 				// since the original hook below already processed the coupon, we only
 				// need to do this for additional coupons
 				$number_of_coupons--;
 
-				// TODO somewhere in here, store a list of post IDs that were created
-				// so we can offer a download link later on
-
+				// unhook the MemberPress save
 				remove_action( 'save_post', 'MeprCouponsController::save_postdata' );
 
 				// unhook our own save
@@ -77,12 +79,45 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 
 					MeprCouponsController::save_postdata( $new_post_id );
 
+					$coupon_codes[] = $post->title;
+
+				}
+
+				// save list of coupons to allow the user to download later
+				if ( count( $coupon_codes ) > 1 ) {
+					$key = $this->coupon_codes_transient_key();
+					set_site_transient( $key, $coupon_codes, MINUTE_IN_SECONDS * 30 );
 				}
 
 			}
 
 
 		}
+
+
+		private function coupon_codes_transient_key() {
+			return 'memberpress-bulk-coupons-' . get_current_user_id();
+		}
+
+
+		public function display_download_coupons() {
+			$coupon_codes = get_site_transient( $this->coupon_codes_transient_key() );
+			if ( ! empty( $coupon_codes ) && is_array( $coupon_codes ) ) {
+				$url = add_query_arg(
+					array(
+							'_wpnonce' => wp_create_nonce( ),
+							'memberpress-bulk-coupon-action' => 'download',
+						),
+					admin_url()
+					);
+				?>
+				    <div class="updated">
+				        <p><a href="<?php echo $url; ?>"><?php printf( __( 'Download %d bulk coupons', 'memberpress-bulk-coupons' ), count( $coupon_codes ) ); ?></a>
+				    </div>
+				<?php
+			}
+		}
+
 
 	}
 
