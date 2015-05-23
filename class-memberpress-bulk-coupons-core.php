@@ -12,7 +12,7 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 			add_action( 'current_screen', array( $this, 'enqueue_js' ), 10, 0 );
 			add_action( 'save_post', array( $this, 'handle_coupon_save' ), 100 );
 			add_action( 'admin_notices', array( $this, 'display_download_coupons') );
-
+			add_action( 'admin_init', array( $this, 'download_coupons' ) );
 		}
 
 
@@ -55,7 +55,7 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 			$post = get_post( $post_id );
 			if ( ! empty( $post ) && $post->post_type === MeprCoupon::$cpt && $number_of_coupons >= 2 ) {
 
-				$coupon_codes = array( $post->title );
+				$coupon_codes = array( $post->post_title );
 
 				// since the original hook below already processed the coupon, we only
 				// need to do this for additional coupons
@@ -79,7 +79,9 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 
 					MeprCouponsController::save_postdata( $new_post_id );
 
-					$coupon_codes[] = $post->title;
+
+					$new_post = get_post( $new_post_id );
+					$coupon_codes[] = $new_post->post_title;
 
 				}
 
@@ -118,6 +120,26 @@ if ( ! class_exists( 'MemberPress_Bulk_Coupons' ) ) {
 			}
 		}
 
+
+		public function download_coupons() {
+			if (
+				is_admin()
+				&& filter_input( INPUT_GET, 'memberpress-bulk-coupon-action', FILTER_SANITIZE_STRING ) === 'download'
+				&& wp_verify_nonce( filter_input( INPUT_GET, '_wpnonce' ) ) !== false ) {
+
+				$coupon_codes = get_site_transient( $this->coupon_codes_transient_key() );
+				if ( ! empty( $coupon_codes ) && is_array( $coupon_codes ) ) {
+					header( 'Content-Type: text/csv' );
+					header( 'Content-Disposition: attachment; filename=memberpress-bulk-coupons-' . current_time( 'timestamp' ) . '.csv' );
+					foreach ( $coupon_codes as $code ) {
+						echo $code . "\n";
+					}
+					delete_site_transient( $this->coupon_codes_transient_key() );
+					exit();
+				}
+
+			}
+		}
 
 	}
 
